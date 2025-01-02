@@ -1,19 +1,23 @@
 use uuid::Uuid;
 use chrono::{Utc};
+use sqlx::Type;
+
+#[derive(Debug, Type)]
+#[sqlx(type_name = "permission")]
 pub enum Permission{
     USER,
     ADMIN
 }
 
 pub struct User {
-    uuid: Uuid,
-    username: String,
-    password: String,
-    email: String,
+    pub(crate) uuid: Uuid,
+    pub(crate) username: String,
+    pub(crate) password: String,
+    pub(crate) email: String,
 
-    permission: Permission,
+    pub(crate) permission: Permission,
 
-    timestamp: u64,
+    pub(crate) timestamp: u64,
 }
 
 impl User {
