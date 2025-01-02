@@ -1,0 +1,19 @@
+[package]
+name = "jwt_auth"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "jwt_auth_lib"
+doc = true
+path = "src/lib.rs"
+
+[dependencies]
+tokio = { version = "1.42.0", features = ["full"] }
+axum =  { version = "0.8.1", features = ["tokio", "tower-log", "json"] }
+serde = { version = "1.0.217", features = ["derive"] }
+sqlx = { version = "0.8.2", features = ["macros", "postgres", "runtime-tokio-native-tls"] }
+dotenv = "0.15.0"
+uuid = { version = "1.11.0", features = ["serde", "v4"] }
+chrono = "0.4.39"
+argon2 = "0.5.3"
