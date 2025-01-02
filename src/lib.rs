@@ -11,7 +11,9 @@ pub mod models {
     pub mod user;
 }
 
-pub mod util{}
+pub mod util{
+    pub mod validation;
+}
 
 
 
