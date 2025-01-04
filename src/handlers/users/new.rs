@@ -13,7 +13,7 @@ use axum::{
         StatusCode,
         header,
     },
-    response::{AppendHeaders, IntoResponse},
+    response::IntoResponse,
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -83,6 +83,7 @@ pub async fn new(
             // knowing the error message here seems redundant to me as this mustn't fail
             return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string())
         };
+
 
 
     // TODO! send user email to validate or delete user
