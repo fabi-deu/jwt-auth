@@ -16,21 +16,20 @@ pub struct User {
     pub(crate) email: String,
 
     pub(crate) permission: Permission,
-
-    pub(crate) timestamp: u64,
+    pub(crate) tokenserial: usize,
+    pub(crate) timestamp: usize,
 }
 
 impl User {
     pub fn new(username: String, password: String, email: String, permission: Permission) -> Self {
-        let uuid = Uuid::new_v4();
-
         Self {
-            uuid,
+            uuid: Uuid::new_v4(),
             username,
             password,
             email,
             permission,
-            timestamp: Utc::now().timestamp() as u64,
+            tokenserial: 0,
+            timestamp: Utc::now().timestamp() as usize,
         }
     }
 }
