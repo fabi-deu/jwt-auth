@@ -13,6 +13,9 @@ pub mod models {
 
 pub mod util{
     pub mod validation;
+    pub mod jwt {
+        pub mod generate;
+    }
 }
 
 
