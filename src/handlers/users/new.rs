@@ -13,6 +13,7 @@ use axum::{
         StatusCode,
         header,
     },
+    response::IntoResponse,
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -34,7 +35,7 @@ pub struct Body {
 pub async fn new(
     State(appstate): State<Arc<Appstate>>,
     Json(body): Json<Body>,
-) -> (StatusCode, String) {
+) -> impl IntoResponse {
     // validate username & password
     match validation::username(&body.username) {
         (true, _) => {},
@@ -63,32 +64,30 @@ pub async fn new(
         body.username,
         hashed_password,
         body.email,
-        Permission::USER /* Hard coded user permission, get admin rights other ways */
+        Permission::USER /* Hard coded user permission, get admin rights yet to be implemented */
     );
 
     // write user to db
     let conn = &appstate.db_pool;
-    let raw_query =
+    let query =
         r"INSERT INTO users (uuid, username, email, password, permission) VALUES ($1, $2, $3, $4, $5)";
 
-    let query = sqlx::query(raw_query)
+    let Ok(query) = sqlx::query(query)
         .bind(&user.uuid.to_string())
         .bind(&user.username)
         .bind(&user.email)
         .bind(&user.password)
         .bind(&user.permission)
-        .execute(conn.as_ref()).await;
+        .execute(conn.as_ref()).await
+        else {
+            // knowing the error message here seems redundant to me as this mustn't fail
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string())
+        };
 
-    match query {
-        Ok(_) => {}
-        Err(e) => return {
-            eprintln!("DB WRITE: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string())
-        }
-    }
 
 
     // TODO! send user email to validate or delete user
+    // TODO! continue with super::login to generate jwt
 
     (StatusCode::CREATED, "".to_string())
 }
