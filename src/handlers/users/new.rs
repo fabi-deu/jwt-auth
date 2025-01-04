@@ -7,9 +7,14 @@ use std::sync::Arc;
 use argon2::{Argon2, PasswordHasher};
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
-use axum::extract::State;
-use axum::http::StatusCode;
-use axum::Json;
+use axum::{
+    extract::State,
+    http::{
+        StatusCode,
+        header,
+    },
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use crate::{
     models::{
@@ -81,6 +86,7 @@ pub async fn new(
             (StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string())
         }
     }
+
 
     // TODO! send user email to validate or delete user
 
