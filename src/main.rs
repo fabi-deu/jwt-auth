@@ -1,13 +1,15 @@
+use axum::handler::Handler;
+use axum::routing::post;
+use axum::Router;
+use dotenv::dotenv;
+use jwt_auth_lib::{
+    handlers::users::*,
+    models::appstate::Appstate,
+};
+use sqlx::PgPool;
 use std::env;
 use std::sync::Arc;
-use axum::Router;
-use axum::routing::{post};
-use dotenv::dotenv;
-use sqlx::PgPool;
-use jwt_auth_lib::{
-    models::appstate::Appstate,
-    handlers::users::*,
-};
+use tower_cookies::CookieManagerLayer;
 
 #[tokio::main]
 async fn main() {
@@ -28,7 +30,7 @@ async fn main() {
 
     // set up axum
     let app = Router::new()
-        .route("/v1/user/new", post(new::new)).with_state(appstate.clone())
+        .route("/v1/user/new", post(new::new)).with_state(appstate.clone()).layer(CookieManagerLayer::new())
     ;
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();

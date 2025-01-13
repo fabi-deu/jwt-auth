@@ -13,7 +13,7 @@ pub struct Claims {
 }
 
 
-pub(crate) fn generate(jwt_secret: String, user: User) -> jsonwebtoken::errors::Result<String> {
+pub(crate) fn generate(jwt_secret: &String, user: &User) -> jsonwebtoken::errors::Result<String> {
     let claims = Claims {
         sub: user.uuid,
         tokenserial: user.tokenserial,
