@@ -22,7 +22,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower_cookies::{Cookie, Cookies};
-
+use crate::util::jwt::generate::generate;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -65,8 +65,17 @@ pub async fn new(
         body.username,
         hashed_password,
         body.email,
-        Permission::USER /* Hard coded user permission, get admin rights yet to be implemented */
+        Permission::USER /* Hard coded user permission, admin rights yet to be implemented */
     );
+
+
+    // TODO! send user email to validate
+
+    // generate jwt for user
+    let token = generate(&appstate.jwt_secret, &user);
+    let Ok(token) = token else {
+        return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string() )
+    };
 
     // write user to db
     let conn = &appstate.db_pool;
@@ -81,23 +90,11 @@ pub async fn new(
         .bind(&user.password)
         .bind(&user.permission)
         .execute(conn.as_ref()).await
-        else { 
-          return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string() )
-        }
-    ;
+        else {
+            return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string() )
+        };
 
-
-
-    // TODO! send user email to validate or delete user
-    // TODO! continue with super::login to generate jwt
-
-    // generate jwt for user
-    let token = generate(&appstate.jwt_secret, &user);
-    let Ok(token) = token else {
-        return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string() )
-    };
-
-
+    // set cookie
     cookies.add(Cookie::new("token", token));
     ( StatusCode::CREATED, String::new() )
 }
