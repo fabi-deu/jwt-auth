@@ -3,7 +3,6 @@
 // 3. add user to db
 // 4. sending email -> email doesn't exist -> delete user
 
-use crate::util::jwt::generate::generate;
 use crate::{
     models::{
         appstate::Appstate,
@@ -24,7 +23,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower_cookies::{Cookie, Cookies};
 
-use axum_macros::debug_handler;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -33,7 +31,7 @@ pub struct Body {
     password: String,
 }
 
-#[debug_handler]
+
 pub async fn new(
     State(appstate): State<Arc<Appstate>>,
     cookies: Cookies,
@@ -67,13 +65,14 @@ pub async fn new(
         body.username,
         hashed_password,
         body.email,
-        Permission::USER /* Hard coded user permission, get admin rights other ways */
+        Permission::USER /* Hard coded user permission, get admin rights yet to be implemented */
     );
 
     // write user to db
     let conn = &appstate.db_pool;
     let query =
         r"INSERT INTO users (uuid, username, email, password, permission) VALUES ($1, $2, $3, $4, $5)";
+
 
     let Ok(_) = sqlx::query(query)
         .bind(&user.uuid.to_string())
@@ -82,12 +81,15 @@ pub async fn new(
         .bind(&user.password)
         .bind(&user.permission)
         .execute(conn.as_ref()).await
-        else { return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string() )
-        };
+        else { 
+          return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string() )
+        }
+    ;
 
 
 
     // TODO! send user email to validate or delete user
+    // TODO! continue with super::login to generate jwt
 
     // generate jwt for user
     let token = generate(&appstate.jwt_secret, &user);
