@@ -16,7 +16,7 @@ pub struct User {
     pub(crate) email: String,
 
     pub(crate) permission: Permission,
-    pub(crate) tokenserial: usize,
+    pub(crate) tokenid: Uuid,
     pub(crate) timestamp: usize,
 }
 
@@ -28,7 +28,7 @@ impl User {
             password,
             email,
             permission,
-            tokenserial: 0,
+            tokenid: Uuid::new_v4(),
             timestamp: Utc::now().timestamp() as usize,
         }
     }

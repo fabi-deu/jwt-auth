@@ -7,7 +7,7 @@ CREATE TABLE "users" (
     password VARCHAR NOT NULL,
 
     permission Permission default 'user',
-    tokenserial bigint default 0,
+    tokenid VARCHAR,
 
     timestamp bigint DEFAULT EXTRACT(EPOCH FROM NOW())
 )

@@ -14,13 +14,10 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
 use axum::response::IntoResponse;
-use axum::{
-    extract::State,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, Extension, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use axum::extract::Request;
 use tower_cookies::{Cookie, Cookies};
 use crate::util::jwt::generate::generate;
 
@@ -31,7 +28,7 @@ pub struct Body {
     password: String,
 }
 
-
+#[axum_macros::debug_handler]
 pub async fn new(
     State(appstate): State<Arc<Appstate>>,
     cookies: Cookies,
@@ -68,19 +65,19 @@ pub async fn new(
         Permission::USER /* Hard coded user permission, admin rights yet to be implemented */
     );
 
-
     // TODO! send user email to validate
 
     // generate jwt for user
     let token = generate(&appstate.jwt_secret, &user);
     let Ok(token) = token else {
+        println!("Failed to generate jwt");
         return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string() )
     };
 
     // write user to db
     let conn = &appstate.db_pool;
     let query =
-        r"INSERT INTO users (uuid, username, email, password, permission) VALUES ($1, $2, $3, $4, $5)";
+        r"INSERT INTO users (uuid, username, email, password, permission, tokenid) VALUES ($1, $2, $3, $4, $5, $6)";
 
 
     let Ok(_) = sqlx::query(query)
@@ -89,6 +86,7 @@ pub async fn new(
         .bind(&user.email)
         .bind(&user.password)
         .bind(&user.permission)
+        .bind(&user.tokenid.to_string())
         .execute(conn.as_ref()).await
         else {
             return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string() )
