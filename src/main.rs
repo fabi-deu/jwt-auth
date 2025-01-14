@@ -31,15 +31,23 @@ async fn main() {
 
 
     // set up axum
-    // ! ERROR: AUTH LAYER APPLIES TO EVERY LAYER -> CANT CREATE USER WITHOUT AUTH
     let app = Router::new()
-        .route("/v1/user/new", post(new::new)).layer(CookieManagerLayer::new())
-        .route("/v1/", get(hello))
-        .with_state(appstate.clone())
-        .layer(middleware::from_fn(auth))
-        .layer(Extension(appstate.clone()))// Apply the auth middleware
-        .layer(CookieManagerLayer::new()) // Apply the cookie manager layer
-        ;
+        .route(
+            "/v1/user/new",
+            post(new::new)
+                .with_state(appstate.clone())
+                .layer(CookieManagerLayer::new())
+        )
+        // ! ERROR: something with auth layer
+        .route(
+            "/v1/auth",
+            get(test)
+                .layer(middleware::from_fn(auth))
+                .layer(Extension(appstate.clone()))
+                /* .with_state() does work here so im making use of extensions */
+                .layer(CookieManagerLayer::new())
+        )
+    ;
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -47,6 +55,6 @@ async fn main() {
 }
 
 
-async fn hello() -> &'static str {
-    "hello world"
+async fn test() -> &'static str {
+    "Hello World!"
 }
