@@ -1,6 +1,6 @@
 CREATE TYPE Permission AS ENUM ( 'USER', 'ADMIN' );
 
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
     uuid VARCHAR PRIMARY KEY,
     username VARCHAR NOT NULL UNIQUE,
     email VARCHAR NOT NULL,

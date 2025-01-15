@@ -12,12 +12,13 @@ path = "src/lib.rs"
 tokio = { version = "1.42.0", features = ["full"] }
 axum =  { version = "0.8.1", features = ["tokio", "tower-log", "json", "macros"] }
 serde = { version = "1.0.217", features = ["derive"] }
-sqlx = { version = "0.8.2", features = ["macros", "postgres", "runtime-tokio-native-tls"] }
+sqlx = { version = "0.8.2", features = ["macros", "postgres", "runtime-tokio-native-tls", "sqlx-postgres"] }
 dotenv = "0.15.0"
 uuid = { version = "1.11.0", features = ["serde", "v4"] }
 chrono = "0.4.39"
 argon2 = "0.5.3"
 jsonwebtoken = "9.3.0"
-tower-cookies = "0.11.0"
-tower-http = { version = "0.6.2" , features = ["full"]}
 axum-macros = "0.5.0"
+tower = "0.5.2"
+async-trait = "0.1.85"
+axum-extra = { version = "0.10.0", features = ["cookie"] }

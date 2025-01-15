@@ -1,8 +1,4 @@
-// 1. body parsing
-// 2. validation + hashing
-// 3. add user to db
-// 4. sending email -> email doesn't exist -> delete user
-
+use crate::util::jwt::generate::generate;
 use crate::{
     models::{
         appstate::Appstate,
@@ -13,13 +9,12 @@ use crate::{
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
-use axum::response::IntoResponse;
-use axum::{extract::State, http::StatusCode, Extension, Json};
+use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
+use sqlx::Error;
 use std::sync::Arc;
-use axum::extract::Request;
-use tower_cookies::{Cookie, Cookies};
-use crate::util::jwt::generate::generate;
+use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::CookieJar;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -31,21 +26,26 @@ pub struct Body {
 #[axum_macros::debug_handler]
 pub async fn new(
     State(appstate): State<Arc<Appstate>>,
-    cookies: Cookies,
+    jar: CookieJar,
     Json(body): Json<Body>,
-) -> impl IntoResponse {
+) -> (
+    StatusCode,
+    CookieJar,
+    String
+) {
+
     // validate username & password
     match validation::username(&body.username) {
         (true, _) => {},
         (false, e) => {
-                return ( StatusCode::BAD_REQUEST, format!("Username is not valid: {}", e) )
+                return ( StatusCode::BAD_REQUEST, jar ,format!("Username is not valid: {}", e) )
         }
     }
 
     match validation::password(&body.password) {
         (true, _) => {}
         (false, e) => {
-            return ( StatusCode::BAD_REQUEST, format!("Password is not valid: {}", e) )
+            return ( StatusCode::BAD_REQUEST, jar, format!("Password is not valid: {}", e) )
         }
     }
 
@@ -54,7 +54,7 @@ pub async fn new(
     let argon = Argon2::default();
     let hashed_password = match argon.hash_password(body.password.as_ref(), &salt) {
         Ok(o) => o.to_string(),
-        Err(_) => return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string() )
+        Err(_) => return ( StatusCode::INTERNAL_SERVER_ERROR, jar,"Failed to hash password".to_string(), )
     };
 
     // construct user model
@@ -71,7 +71,7 @@ pub async fn new(
     let token = generate(&appstate.jwt_secret, &user);
     let Ok(token) = token else {
         println!("Failed to generate jwt");
-        return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string() )
+        return ( StatusCode::INTERNAL_SERVER_ERROR, jar, "Failed to generate jwt".to_string())
     };
 
     // write user to db
@@ -79,20 +79,36 @@ pub async fn new(
     let query =
         r"INSERT INTO users (uuid, username, email, password, permission, tokenid) VALUES ($1, $2, $3, $4, $5, $6)";
 
-
-    let Ok(_) = sqlx::query(query)
+    // TODO! implement error matching for unique username
+    let query_result = sqlx::query(query)
         .bind(&user.uuid.to_string())
         .bind(&user.username)
         .bind(&user.email)
         .bind(&user.password)
         .bind(&user.permission)
         .bind(&user.tokenid.to_string())
-        .execute(conn.as_ref()).await
-        else {
-            return ( StatusCode::INTERNAL_SERVER_ERROR, "Failed to insert user into db".to_string() )
-        };
+        .execute(conn.as_ref()).await;
+
+    match query_result {
+        Ok(_) => {},
+        Err(e) => {
+            return match e {
+                Error::Database(db_err) => {
+                    return if db_err.is_unique_violation() {
+                        (StatusCode::BAD_REQUEST, jar,"Username is already taken".to_string())
+                    } else {
+                        (StatusCode::INTERNAL_SERVER_ERROR, jar, "Failed to write to database".to_string())
+                    }
+                }
+                _ => (StatusCode::INTERNAL_SERVER_ERROR, jar, "Failed to write to database".to_string())
+            }
+        }
+    }
+
 
     // set cookie
-    cookies.add(Cookie::new("token", token));
-    ( StatusCode::CREATED, String::new() )
+    let jar = jar.add(Cookie::new("token", token));
+
+
+    ( StatusCode::CREATED, jar, String::new())
 }

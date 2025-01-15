@@ -1,6 +1,6 @@
 pub mod handlers {
     pub mod users {
-        pub mod authorize;
+        pub mod authenticate;
         pub mod login;
         pub mod new;
     }
