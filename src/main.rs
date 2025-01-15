@@ -1,7 +1,7 @@
-use axum::handler::Handler;
-use axum::routing::post;
-use axum::Router;
+use axum::routing::{get, post};
+use axum::{middleware, Extension, Json, Router};
 use dotenv::dotenv;
+use jwt_auth_lib::handlers::users::authenticate::auth;
 use jwt_auth_lib::{
     handlers::users::*,
     models::appstate::Appstate,
@@ -9,7 +9,8 @@ use jwt_auth_lib::{
 use sqlx::PgPool;
 use std::env;
 use std::sync::Arc;
-use tower_cookies::CookieManagerLayer;
+use tower::ServiceBuilder;
+use jwt_auth_lib::models::user::{AuthUser, User};
 
 #[tokio::main]
 async fn main() {
@@ -18,7 +19,8 @@ async fn main() {
 
     let jwt_secret = env::var("JWT_SECRET").unwrap();
 
-    let psql_url = env::var("PSQL_URL").unwrap();
+    // postgres connection
+    let psql_url = env::var("DATABASE_URL").unwrap();
     let pool = PgPool::connect(&psql_url).await.unwrap();
     let shared_pool = Arc::new(pool);
 
@@ -27,13 +29,36 @@ async fn main() {
         jwt_secret,
     });
 
+    let protected_routes = Router::new()
+        .route("/v1/authtest", get(test))
+        .layer(
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(auth))
+                .layer(Extension(appstate.clone()))
+        );
+
+
+    let public_routes = Router::new()
+        .route("/v1/user/new", post(new::new))
+    ;
+
 
     // set up axum
     let app = Router::new()
-        .route("/v1/user/new", post(new::new)).with_state(appstate.clone()).layer(CookieManagerLayer::new())
+        .merge(protected_routes)
+        .merge(public_routes)
+        .layer(Extension(appstate.clone()))
+        .with_state(appstate.clone())
     ;
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 
+}
+
+#[axum_macros::debug_handler]
+async fn test(
+    ext: Extension<AuthUser>
+) -> Json<User> {
+    Json(ext.0.0)
 }

@@ -1,13 +1,13 @@
 CREATE TYPE Permission AS ENUM ( 'USER', 'ADMIN' );
 
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
     uuid VARCHAR PRIMARY KEY,
-    username VARCHAR NOT NULL,
+    username VARCHAR NOT NULL UNIQUE,
     email VARCHAR NOT NULL,
     password VARCHAR NOT NULL,
 
-    permission Permission default 'user',
-    tokenserial bigint default 0,
+    permission Permission default 'USER',
+    tokenid VARCHAR NOT NULL,
 
     timestamp bigint DEFAULT EXTRACT(EPOCH FROM NOW())
 )
