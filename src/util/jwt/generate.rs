@@ -18,7 +18,7 @@ pub(crate) fn generate(jwt_secret: &String, user: &User) -> jsonwebtoken::errors
         sub: user.uuid,
         tokenid: user.tokenid,
         iat: Utc::now().timestamp() as usize,
-        exp: Utc::now().timestamp() as usize + 60*60*24*365, /* 1 year */
+        exp: Utc::now().timestamp() as usize + 3*31536000, /* 3 years */
     };
     encode(&Header::default(), &claims, &EncodingKey::from_secret(jwt_secret.as_ref()))
 }
