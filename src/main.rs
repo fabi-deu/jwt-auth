@@ -33,6 +33,7 @@ async fn main() {
     let protected_routes = Router::new()
         .route("/v1/auth_test", get(test))
         .route("/v1/password/change", put(updating::password::change::change_password))
+        .route("/v1/username/change", put(updating::username::change::change_username))
         .layer(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(auth))
