@@ -10,6 +10,7 @@ use sqlx::PgPool;
 use std::env;
 use std::sync::Arc;
 use tower::ServiceBuilder;
+use jwt_auth_lib::handlers::users::login::login;
 use jwt_auth_lib::models::user::{AuthUser, User};
 
 #[tokio::main]
@@ -40,6 +41,7 @@ async fn main() {
 
     let public_routes = Router::new()
         .route("/v1/user/new", post(new::new))
+        .route("/v1/user/login", post(login))
     ;
 
 
