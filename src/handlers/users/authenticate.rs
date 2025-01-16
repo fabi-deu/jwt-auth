@@ -21,8 +21,6 @@ pub async fn auth(
     let token = jar.get("token")
         .ok_or(StatusCode::BAD_REQUEST)?;
 
-    println!("{}", token.value());
-
     // decode token
     let secret = &appstate.jwt_secret;
     let token_data = decode::<Claims>(
@@ -34,9 +32,11 @@ pub async fn auth(
     // validate claims and get user model
     let user = match valid_claims(token_data.claims, &appstate.db_pool).await {
         Ok(o) => {
-            if o.1 != StatusCode::OK { return Err( StatusCode::UNAUTHORIZED ) }
-            o.0.unwrap() // unwrapping is ok here as we know its Some() from the StatusCode
-        }
+            match o {
+                Some(u) => u,
+                None => return Err(StatusCode::UNAUTHORIZED)
+            }
+        },
         Err(_) => return Err( StatusCode::INTERNAL_SERVER_ERROR )
     };
 

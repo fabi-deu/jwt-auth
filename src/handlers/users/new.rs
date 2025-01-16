@@ -28,33 +28,30 @@ pub async fn new(
     State(appstate): State<Arc<Appstate>>,
     jar: CookieJar,
     Json(body): Json<Body>,
-) -> (
-    StatusCode,
-    CookieJar,
-    String
-) {
+) -> Result<(StatusCode, CookieJar), (StatusCode, String)> {
 
     // validate username & password
     match validation::username(&body.username) {
         (true, _) => {},
         (false, e) => {
-                return ( StatusCode::BAD_REQUEST, jar ,format!("Username is not valid: {}", e) )
+                return Err((StatusCode::BAD_REQUEST, format!("Username is not valid: {}", e)))
         }
     }
 
     match validation::password(&body.password) {
         (true, _) => {}
         (false, e) => {
-            return ( StatusCode::BAD_REQUEST, jar, format!("Password is not valid: {}", e) )
+            return Err((StatusCode::BAD_REQUEST, format!("Password is not valid: {}", e)))
         }
     }
 
     // hash password
+    // hashing the password should be done after checking for unique username
     let salt = SaltString::generate(&mut OsRng);
     let argon = Argon2::default();
     let hashed_password = match argon.hash_password(body.password.as_ref(), &salt) {
         Ok(o) => o.to_string(),
-        Err(_) => return ( StatusCode::INTERNAL_SERVER_ERROR, jar,"Failed to hash password".to_string(), )
+        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string()))
     };
 
     // construct user model
@@ -70,8 +67,7 @@ pub async fn new(
     // generate jwt for user
     let token = generate(&appstate.jwt_secret, &user);
     let Ok(token) = token else {
-        println!("Failed to generate jwt");
-        return ( StatusCode::INTERNAL_SERVER_ERROR, jar, "Failed to generate jwt".to_string())
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string()))
     };
 
     // write user to db
@@ -79,7 +75,6 @@ pub async fn new(
     let query =
         r"INSERT INTO users (uuid, username, email, password, permission, tokenid) VALUES ($1, $2, $3, $4, $5, $6)";
 
-    // TODO! implement error matching for unique username
     let query_result = sqlx::query(query)
         .bind(&user.uuid.to_string())
         .bind(&user.username)
@@ -89,26 +84,21 @@ pub async fn new(
         .bind(&user.tokenid.to_string())
         .execute(conn.as_ref()).await;
 
-    match query_result {
-        Ok(_) => {},
-        Err(e) => {
-            return match e {
-                Error::Database(db_err) => {
-                    return if db_err.is_unique_violation() {
-                        (StatusCode::BAD_REQUEST, jar,"Username is already taken".to_string())
-                    } else {
-                        (StatusCode::INTERNAL_SERVER_ERROR, jar, "Failed to write to database".to_string())
-                    }
+    if let Err(e) = query_result {
+        return match e {
+            Error::Database(db_err) => {
+                if db_err.is_unique_violation() {
+                    Err((StatusCode::BAD_REQUEST, "Username is already taken".to_string()))
+                } else {
+                    Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to write to database".to_string()))
                 }
-                _ => (StatusCode::INTERNAL_SERVER_ERROR, jar, "Failed to write to database".to_string())
             }
+            _ => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to write to database".to_string()))
         }
     }
-
 
     // set cookie
     let jar = jar.add(Cookie::new("token", token));
 
-
-    ( StatusCode::CREATED, jar, String::new())
+    Ok((StatusCode::CREATED, jar))
 }

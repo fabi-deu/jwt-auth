@@ -30,7 +30,7 @@ async fn main() {
     });
 
     let protected_routes = Router::new()
-        .route("/v1/authtest", get(test))
+        .route("/v1/auth_test", get(test))
         .layer(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(auth))
