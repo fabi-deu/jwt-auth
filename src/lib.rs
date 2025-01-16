@@ -1,5 +1,15 @@
 pub mod handlers {
     pub mod users {
+        pub mod updating {
+            pub mod password {
+                pub mod change;
+                pub mod reset;
+            }
+            pub mod username {
+                pub mod change;
+                pub mod reset;
+            }
+        }
         pub mod authenticate;
         pub mod login;
         pub mod new;
