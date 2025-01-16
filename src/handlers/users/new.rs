@@ -65,7 +65,7 @@ pub async fn new(
     // TODO! send user email to validate
 
     // generate jwt for user
-    let token = Claims::generate(&appstate.jwt_secret, &user);
+    let token = Claims::generate_jwt(&appstate.jwt_secret, &user);
     let Ok(token) = token else {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string()))
     };

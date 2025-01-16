@@ -1,4 +1,4 @@
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::{middleware, Extension, Json, Router};
 use dotenv::dotenv;
 use jwt_auth_lib::handlers::users::authenticate::auth;
@@ -32,6 +32,8 @@ async fn main() {
 
     let protected_routes = Router::new()
         .route("/v1/auth_test", get(test))
+        .route("/v1/password/change", put(updating::password::change::change_password))
+        .route("/v1/username/change", put(updating::username::change::change_username))
         .layer(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(auth))

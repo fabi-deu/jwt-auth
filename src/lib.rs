@@ -7,7 +7,6 @@ pub mod handlers {
             }
             pub mod username {
                 pub mod change;
-                pub mod reset;
             }
         }
         pub mod authenticate;

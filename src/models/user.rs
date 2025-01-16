@@ -1,4 +1,4 @@
-use std::error::Error;
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use async_trait::async_trait;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
@@ -7,6 +7,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
 use sqlx::{Row, Type};
+use std::error::Error;
 use std::future::{ready, Future};
 use uuid::Uuid;
 
@@ -56,6 +57,13 @@ impl User {
             tokenid: Uuid::parse_str(row.try_get("tokenid")?)?,
             timestamp: row.try_get::<i64, _>("timestamp")? as usize,
         })
+    }
+    /// Compares hashed password from self with un-hashed attempt
+    /// Returns false when error
+    pub fn compare_passwords(&self, attempt: String) -> Result<bool, argon2::password_hash::Error> {
+        let parsed_hash = PasswordHash::new(&self.password)?;
+        let argon2 = Argon2::default();
+        Ok(argon2.verify_password(attempt.as_bytes(), &parsed_hash).is_ok())
     }
 }
 

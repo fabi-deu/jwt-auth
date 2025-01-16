@@ -33,11 +33,21 @@ pub async fn login(
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch user from db".to_string()))
     };
 
-    // generate token
+    // compare passwords
     let user= User::from_pg_row(row)
         .ok().ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Failed to parse user".to_string()))?;
 
-    let token = match Claims::generate(&appstate.jwt_secret, &user) {
+    match user.compare_passwords(body.password) {
+        Ok(o) => {
+            if !o {
+                return Err((StatusCode::UNAUTHORIZED, "Wrong password".to_string()))
+            }
+        },
+        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to compare passwords".to_string()))
+    }
+
+    // generate token
+    let token = match Claims::generate_jwt(&appstate.jwt_secret, &user) {
         Ok(o) => o,
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string()))
     };
