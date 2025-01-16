@@ -45,7 +45,7 @@ impl Claims {
         Ok(Some(user))
     }
 
-    pub fn generate(jwt_secret: &String, user: &User) -> jsonwebtoken::errors::Result<String> {
+    pub fn generate_jwt(jwt_secret: &String, user: &User) -> jsonwebtoken::errors::Result<String> {
         let claims = Claims {
             sub: user.uuid,
             tokenid: user.tokenid,
