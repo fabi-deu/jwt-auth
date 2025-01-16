@@ -1,6 +1,5 @@
 use crate::models::user::User;
 use crate::util::jwt::generate::Claims;
-use axum::http::StatusCode;
 use chrono::Utc;
 use sqlx::{Pool, Postgres};
 use std::error::Error;
@@ -10,10 +9,11 @@ use std::sync::Arc;
 /// Returns Some(User) when valid
 pub(crate) async fn valid_claims(
     claims: Claims, conn: &Arc<Pool<Postgres>>
-) -> Result<(Option<User>, StatusCode), Box<dyn Error>> {
+) -> Result<Option<User>, Box<dyn Error>> {
+
     // check for timestamps
     if claims.exp < Utc::now().timestamp() as usize {
-        return Ok((None, StatusCode::UNAUTHORIZED))
+        return Ok(None)
     }
 
     // get user from db
@@ -24,14 +24,12 @@ pub(crate) async fn valid_claims(
         .fetch_one(conn.as_ref())
         .await?;
 
-    println!("{:?}", row);
     let user = User::from_pg_row(row)?;
-    println!("{:?}", &user);
 
     // compare ids
     if user.tokenid != claims.tokenid {
-        return Ok((None, StatusCode::UNAUTHORIZED))
+        return Ok(None)
     }
 
-    Ok((Some(user), StatusCode::OK))
+    Ok(Some(user))
 }
