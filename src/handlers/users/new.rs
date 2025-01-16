@@ -1,4 +1,3 @@
-use crate::util::jwt::generate::generate;
 use crate::{
     models::{
         appstate::Appstate,
@@ -15,6 +14,7 @@ use sqlx::Error;
 use std::sync::Arc;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
+use crate::util::jwt::claims::Claims;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -65,7 +65,7 @@ pub async fn new(
     // TODO! send user email to validate
 
     // generate jwt for user
-    let token = generate(&appstate.jwt_secret, &user);
+    let token = Claims::generate(&appstate.jwt_secret, &user);
     let Ok(token) = token else {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string()))
     };

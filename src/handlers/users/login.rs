@@ -7,7 +7,7 @@ use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use crate::models::appstate::Appstate;
 use crate::models::user::User;
-use crate::util::jwt::generate::generate;
+use crate::util::jwt::claims::Claims;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -37,7 +37,7 @@ pub async fn login(
     let user= User::from_pg_row(row)
         .ok().ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Failed to parse user".to_string()))?;
 
-    let token = match generate(&appstate.jwt_secret, &user) {
+    let token = match Claims::generate(&appstate.jwt_secret, &user) {
         Ok(o) => o,
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string()))
     };

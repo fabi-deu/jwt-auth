@@ -1,6 +1,5 @@
 use crate::models::appstate::Appstate;
-use crate::util::jwt::generate::Claims;
-use crate::util::jwt::validate::valid_claims;
+use crate::util::jwt::claims::Claims;
 use axum::extract::Request;
 use axum::http::StatusCode;
 use axum::middleware::Next;
@@ -30,7 +29,8 @@ pub async fn auth(
     ).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     // validate claims and get user model
-    let user = match valid_claims(token_data.claims, &appstate.db_pool).await {
+    let claims = token_data.claims;
+    let user = match claims.validate_claims(&appstate.db_pool).await {
         Ok(o) => {
             match o {
                 Some(u) => u,

@@ -30,7 +30,7 @@ pub struct User {
 }
 // for passing user data to next handler with auth middleware
 #[derive(Clone)]
-pub struct AuthUser( pub User);
+pub struct AuthUser(pub User);
 
 
 impl User {
@@ -45,6 +45,7 @@ impl User {
             timestamp: Utc::now().timestamp() as usize,
         }
     }
+    /// Maps PgRow to User
     pub fn from_pg_row(row: PgRow) -> Result<User, Box<dyn Error>> {
         Ok(User{
             uuid: Uuid::parse_str(row.try_get("uuid")?)?,
