@@ -9,8 +9,12 @@ use jwt_auth_lib::{
 use sqlx::PgPool;
 use std::env;
 use std::sync::Arc;
+use axum::http::Method;
 use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
+use tower_http::cors::{Any, CorsLayer};
 use jwt_auth_lib::handlers::users::login::login;
+use jwt_auth_lib::handlers::users::refresh::refresh_token;
 use jwt_auth_lib::models::user::{AuthUser, User};
 
 #[tokio::main]
@@ -30,10 +34,16 @@ async fn main() {
         jwt_secret,
     });
 
+    // set up http server
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::PUT])
+        .allow_origin(Any);
+
     let protected_routes = Router::new()
         .route("/v1/auth_test", get(test))
-        .route("/v1/password/change", put(updating::password::change::change_password))
-        .route("/v1/username/change", put(updating::username::change::change_username))
+        .route("/v1/user/password/change", put(updating::password::change::change_password))
+        .route("/v1/user/username/change", put(updating::username::change::change_username))
+        .route("/v1/user/refresh_token", get(refresh_token))
         .layer(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(auth))
@@ -51,7 +61,13 @@ async fn main() {
     let app = Router::new()
         .merge(protected_routes)
         .merge(public_routes)
-        .layer(Extension(appstate.clone()))
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(Extension(appstate.clone()))
+                .layer(cors)
+        )
+        //.layer(Extension(appstate.clone()))
         .with_state(appstate.clone())
     ;
 
