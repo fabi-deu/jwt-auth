@@ -29,6 +29,7 @@ pub async fn change_username(
         .execute(conn.as_ref())
         .await;
 
+
     if !query_result.is_ok() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to write change to db".to_string()))
     }

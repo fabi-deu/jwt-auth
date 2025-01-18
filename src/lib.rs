@@ -3,7 +3,6 @@ pub mod handlers {
         pub mod updating {
             pub mod password {
                 pub mod change;
-                pub mod reset;
             }
             pub mod username {
                 pub mod change;
@@ -12,6 +11,7 @@ pub mod handlers {
         pub mod authenticate;
         pub mod login;
         pub mod new;
+        pub mod refresh;
     }
 }
 
