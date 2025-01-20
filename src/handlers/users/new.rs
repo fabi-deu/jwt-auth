@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::Error;
 use std::sync::Arc;
 use axum_extra::extract::cookie::Cookie;
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::{CookieJar, PrivateCookieJar};
+use crate::models::appstate::AppstateWrapper;
 use crate::util::jwt::claims::Claims;
 
 #[derive(Serialize, Deserialize)]
@@ -25,10 +26,11 @@ pub struct Body {
 
 #[axum_macros::debug_handler]
 pub async fn new(
-    State(appstate): State<Arc<Appstate>>,
-    jar: CookieJar,
+    State(appstate): State<AppstateWrapper>,
+    jar: PrivateCookieJar,
     Json(body): Json<Body>,
-) -> Result<(StatusCode, CookieJar), (StatusCode, String)> {
+) -> Result<(StatusCode, PrivateCookieJar), (StatusCode, String)> {
+    let appstate = appstate.0;
 
     // validate username & password
     match validation::username(&body.username) {

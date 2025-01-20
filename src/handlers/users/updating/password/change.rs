@@ -1,17 +1,16 @@
-use std::sync::Arc;
-use argon2::{Argon2, PasswordHasher};
-use argon2::password_hash::rand_core::OsRng;
-use argon2::password_hash::SaltString;
-use axum::{Extension, Json};
-use axum::extract::State;
-use axum::http::StatusCode;
-use axum_extra::extract::cookie::Cookie;
-use axum_extra::extract::CookieJar;
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use crate::models::appstate::Appstate;
+use crate::models::appstate::AppstateWrapper;
 use crate::models::user::AuthUser;
 use crate::util::jwt::claims::Claims;
+use argon2::password_hash::rand_core::OsRng;
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHasher};
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::{Extension, Json};
+use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::PrivateCookieJar;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -24,11 +23,12 @@ pub struct Body {
 #[axum_macros::debug_handler]
 pub async fn change_password(
     auth_user: Extension<AuthUser>,
-    State(appstate): State<Arc<Appstate>>,
-    jar: CookieJar,
+    State(appstate): State<AppstateWrapper>,
+    jar: PrivateCookieJar,
     Json(body): Json<Body>
-) -> Result<(StatusCode, CookieJar), (StatusCode, String)> {
+) -> Result<(StatusCode, PrivateCookieJar), (StatusCode, String)> {
     let mut user = auth_user.0.0;
+    let appstate = appstate.0;
 
     // confirm old password
     match user.compare_passwords(body.old_password) {
