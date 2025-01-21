@@ -1,21 +1,17 @@
+use crate::models::appstate::AppstateWrapper;
+use crate::util::jwt::claims::Claims;
 use crate::{
-    models::{
-        appstate::Appstate,
-        user::*,
-    },
+    models::user::*,
     util::validation,
 };
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
 use axum::{extract::State, http::StatusCode, Json};
+use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::PrivateCookieJar;
 use serde::{Deserialize, Serialize};
 use sqlx::Error;
-use std::sync::Arc;
-use axum_extra::extract::cookie::Cookie;
-use axum_extra::extract::{CookieJar, PrivateCookieJar};
-use crate::models::appstate::AppstateWrapper;
-use crate::util::jwt::claims::Claims;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {

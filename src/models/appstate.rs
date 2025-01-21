@@ -40,8 +40,6 @@ impl FromRef<AppstateWrapper> for Key {
     }
 }
 
-
-
 impl FromRef<Appstate> for Key {
     fn from_ref(state: &Appstate) -> Self {
         state.cookie_secret.clone()

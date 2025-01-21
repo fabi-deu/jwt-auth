@@ -1,13 +1,12 @@
-use std::sync::Arc;
+use crate::models::appstate::AppstateWrapper;
+use crate::models::user::User;
+use crate::util::jwt::claims::Claims;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
 use axum_extra::extract::cookie::Cookie;
-use axum_extra::extract::{CookieJar, PrivateCookieJar};
+use axum_extra::extract::PrivateCookieJar;
 use serde::{Deserialize, Serialize};
-use crate::models::appstate::{Appstate, AppstateWrapper};
-use crate::models::user::User;
-use crate::util::jwt::claims::Claims;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
