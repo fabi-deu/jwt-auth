@@ -10,29 +10,35 @@ use sqlx::PgPool;
 use std::env;
 use std::sync::Arc;
 use axum::http::Method;
+use axum_extra::extract::cookie::Key;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tower_http::cors::{Any, CorsLayer};
 use jwt_auth_lib::handlers::users::login::login;
 use jwt_auth_lib::handlers::users::refresh::refresh_token;
+use jwt_auth_lib::models::appstate::AppstateWrapper;
 use jwt_auth_lib::models::user::{AuthUser, User};
 
 #[tokio::main]
 async fn main() {
-    // load environment
+    // load environment vars
     dotenv().ok();
 
     let jwt_secret = env::var("JWT_SECRET").unwrap();
+    let cookie_secret = env::var("COOKIE_SECRET").unwrap();
 
     // postgres connection
     let psql_url = env::var("DATABASE_URL").unwrap();
     let pool = PgPool::connect(&psql_url).await.unwrap();
     let shared_pool = Arc::new(pool);
 
-    let appstate = Arc::new(Appstate {
-        db_pool: shared_pool,
+    // create appstate
+    let appstate = Arc::new(Appstate::new(
+        shared_pool,
         jwt_secret,
-    });
+        Key::try_from(cookie_secret.as_bytes()).unwrap()
+    ));
+    let wrapped_appstate = AppstateWrapper(appstate);
 
     // set up http server
     let cors = CorsLayer::new()
@@ -47,9 +53,8 @@ async fn main() {
         .layer(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(auth))
-                .layer(Extension(appstate.clone()))
+                .layer(Extension(wrapped_appstate.clone()))
         );
-
 
     let public_routes = Router::new()
         .route("/v1/user/new", post(new::new))
@@ -63,12 +68,11 @@ async fn main() {
         .merge(public_routes)
         .layer(
             ServiceBuilder::new()
+                .layer(Extension(wrapped_appstate.clone()))
                 .layer(TraceLayer::new_for_http())
-                .layer(Extension(appstate.clone()))
                 .layer(cors)
         )
-        //.layer(Extension(appstate.clone()))
-        .with_state(appstate.clone())
+        .with_state(wrapped_appstate.clone())
     ;
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();

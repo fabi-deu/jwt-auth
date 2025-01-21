@@ -1,20 +1,17 @@
+use crate::models::appstate::AppstateWrapper;
+use crate::util::jwt::claims::Claims;
 use crate::{
-    models::{
-        appstate::Appstate,
-        user::*,
-    },
+    models::user::*,
     util::validation,
 };
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
 use axum::{extract::State, http::StatusCode, Json};
+use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::PrivateCookieJar;
 use serde::{Deserialize, Serialize};
 use sqlx::Error;
-use std::sync::Arc;
-use axum_extra::extract::cookie::Cookie;
-use axum_extra::extract::CookieJar;
-use crate::util::jwt::claims::Claims;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -25,10 +22,11 @@ pub struct Body {
 
 #[axum_macros::debug_handler]
 pub async fn new(
-    State(appstate): State<Arc<Appstate>>,
-    jar: CookieJar,
+    State(appstate): State<AppstateWrapper>,
+    jar: PrivateCookieJar,
     Json(body): Json<Body>,
-) -> Result<(StatusCode, CookieJar), (StatusCode, String)> {
+) -> Result<(StatusCode, PrivateCookieJar), (StatusCode, String)> {
+    let appstate = appstate.0;
 
     // validate username & password
     match validation::username(&body.username) {

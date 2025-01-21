@@ -1,13 +1,12 @@
-use std::sync::Arc;
+use crate::models::appstate::AppstateWrapper;
+use crate::models::user::User;
+use crate::util::jwt::claims::Claims;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
 use axum_extra::extract::cookie::Cookie;
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::PrivateCookieJar;
 use serde::{Deserialize, Serialize};
-use crate::models::appstate::Appstate;
-use crate::models::user::User;
-use crate::util::jwt::claims::Claims;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -16,10 +15,12 @@ pub struct Body {
 }
 
 pub async fn login(
-    State(appstate): State<Arc<Appstate>>,
-    jar: CookieJar,
+    State(appstate): State<AppstateWrapper>,
+    jar: PrivateCookieJar,
     Json(body): Json<Body>
-) -> Result<(StatusCode, CookieJar), (StatusCode, String)> {
+) -> Result<(StatusCode, PrivateCookieJar), (StatusCode, String)> {
+    let appstate = appstate.0;
+
     // get user from db
     let conn = &appstate.db_pool;
     let query_result = sqlx::query("SELECT * FROM users WHERE username = $1")

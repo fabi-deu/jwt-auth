@@ -1,10 +1,9 @@
-use crate::models::appstate::Appstate;
+use crate::models::appstate::AppstateWrapper;
 use crate::models::user::AuthUser;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -15,10 +14,11 @@ pub struct Body {
 #[axum_macros::debug_handler]
 pub async fn change_username(
     auth_user: Extension<AuthUser>,
-    State(appstate): State<Arc<Appstate>>,
+    State(appstate): State<AppstateWrapper>,
     Json(body): Json<Body>
 ) -> Result<StatusCode, (StatusCode, String)> {
     let user = auth_user.0.0;
+    let appstate = appstate.0;
 
     // update new username in db
     let conn = &appstate.db_pool;
