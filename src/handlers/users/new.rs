@@ -8,7 +8,7 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
 use axum::{extract::State, http::StatusCode, Json};
-use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::PrivateCookieJar;
 use serde::{Deserialize, Serialize};
 use sqlx::Error;
@@ -96,7 +96,11 @@ pub async fn new(
     }
 
     // set cookie
-    let jar = jar.add(Cookie::new("token", token));
+    let mut cookie = Cookie::new("token", token);
+    cookie.set_http_only(true);
+    cookie.set_same_site(SameSite::Strict);
+
+    let jar = jar.add(cookie);
 
     Ok((StatusCode::CREATED, jar))
 }

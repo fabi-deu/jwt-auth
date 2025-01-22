@@ -7,7 +7,7 @@ use argon2::{Argon2, PasswordHasher};
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Extension, Json};
-use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::PrivateCookieJar;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -74,7 +74,11 @@ pub async fn change_password(
     };
 
     // add new token to cookies
-    let jar = jar.add(Cookie::new("token", token));
+    let mut cookie = Cookie::new("token", token);
+    cookie.set_http_only(true);
+    cookie.set_same_site(SameSite::Strict);
+
+    let jar = jar.add(cookie);
 
     Ok((StatusCode::OK, jar))
 }

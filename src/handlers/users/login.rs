@@ -4,7 +4,7 @@ use crate::util::jwt::claims::Claims;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
-use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::PrivateCookieJar;
 use serde::{Deserialize, Serialize};
 
@@ -53,8 +53,12 @@ pub async fn login(
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate jwt".to_string()))
     };
 
-    // add token to cookies
-    let jar = jar.add(Cookie::new("token", token));
+    // set cookies
+    let mut cookie = Cookie::new("token", token);
+    cookie.set_http_only(true);
+    cookie.set_same_site(SameSite::Strict);
+
+    let jar = jar.add(cookie);
 
     Ok((StatusCode::OK, jar))
 }

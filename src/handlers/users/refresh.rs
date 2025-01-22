@@ -4,7 +4,7 @@ use crate::util::jwt::claims::Claims;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Extension;
-use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::PrivateCookieJar;
 
 #[axum_macros::debug_handler]
@@ -23,7 +23,11 @@ pub async fn refresh_token(
     };
 
     // set new token in cookies
-    let jar = jar.add(Cookie::new("token", new_token));
+    let mut cookie = Cookie::new("token", new_token);
+    cookie.set_http_only(true);
+    cookie.set_same_site(SameSite::Strict);
+
+    let jar = jar.add(cookie);
 
     Ok((StatusCode::OK, jar))
 }
