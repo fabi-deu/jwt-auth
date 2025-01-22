@@ -24,6 +24,7 @@ pub async fn auth(
     let token = jar.get("token")
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
+
     // decode token
     let secret = &appstate.jwt_secret;
     let token_data = decode::<Claims>(
