@@ -5,6 +5,7 @@ edition = "2021"
 
 [lib]
 name = "jwt_auth_lib"
+version = "0.1.0"
 doc = true
 path = "src/lib.rs"
 
