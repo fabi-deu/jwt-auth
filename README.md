@@ -1,6 +1,6 @@
 # JWT Authentication 
-
-A simple authentication app built with Rust on axum.\
+A simple authentication app built with Rust on axum.
+\
 **This is in no means production grade software!**
 ### TODO
 - email verification/validation
