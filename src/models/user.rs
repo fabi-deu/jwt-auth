@@ -71,7 +71,6 @@ impl User {
 
     pub async fn from_token(token: String, appstate: &Appstate) -> Result<User, StatusCode> {
         // decode token
-        println!("from_token: 0");
         let secret = &appstate.jwt_secret;
         let token_data = decode::<Claims>(
             &token,
@@ -79,23 +78,18 @@ impl User {
             &Validation::default()
         ).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-        println!("from_token: a");
-
         // validate claims and get user model
         let claims = token_data.claims;
         let user = match claims.validate_claims(&appstate.db_pool).await {
             Ok(o) => {
-                println!("from_token: b");
                 match o {
                     Some(u) => u,
                     None => {
-                        println!("from_token: c");
                         return Err(StatusCode::UNAUTHORIZED)
                     }
                 }
             },
             Err(_) => {
-                println!("from_token: d");
                 return Err( StatusCode::INTERNAL_SERVER_ERROR )
             }
         };
