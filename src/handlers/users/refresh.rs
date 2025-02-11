@@ -12,7 +12,7 @@ pub async fn refresh_token(
     auth_user: Extension<AuthUser>,
     jar: PrivateCookieJar,
     State(appstate): State<AppstateWrapper>,
-) -> Result<(StatusCode, PrivateCookieJar), (StatusCode, &'static str)> {
+) -> Result<(StatusCode, PrivateCookieJar, String), (StatusCode, &'static str)> {
     let appstate = appstate.0;
     let user = auth_user.0.0;
 
@@ -23,11 +23,11 @@ pub async fn refresh_token(
     };
 
     // set new token in cookies
-    let mut cookie = Cookie::new("token", new_token);
+    let mut cookie = Cookie::new("token", new_token.clone());
     cookie.set_http_only(true);
     cookie.set_same_site(SameSite::Strict);
 
     let jar = jar.add(cookie);
 
-    Ok((StatusCode::OK, jar))
+    Ok((StatusCode::OK, jar, new_token.to_owned()))
 }

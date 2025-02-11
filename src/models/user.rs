@@ -9,7 +9,10 @@ use sqlx::postgres::PgRow;
 use sqlx::{Row, Type};
 use std::error::Error;
 use std::future::{ready, Future};
+use jsonwebtoken::{decode, DecodingKey, Validation};
 use uuid::Uuid;
+use crate::models::appstate::Appstate;
+use crate::util::jwt::claims::Claims;
 
 #[derive(Debug, Type, Clone, Serialize, Deserialize)]
 #[sqlx(type_name = "permission")]
@@ -64,6 +67,39 @@ impl User {
         let parsed_hash = PasswordHash::new(&self.password)?;
         let argon2 = Argon2::default();
         Ok(argon2.verify_password(attempt.as_bytes(), &parsed_hash).is_ok())
+    }
+
+    pub async fn from_token(token: String, appstate: &Appstate) -> Result<User, StatusCode> {
+        // decode token
+        println!("from_token: 0");
+        let secret = &appstate.jwt_secret;
+        let token_data = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(secret.as_ref()),
+            &Validation::default()
+        ).map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+        println!("from_token: a");
+
+        // validate claims and get user model
+        let claims = token_data.claims;
+        let user = match claims.validate_claims(&appstate.db_pool).await {
+            Ok(o) => {
+                println!("from_token: b");
+                match o {
+                    Some(u) => u,
+                    None => {
+                        println!("from_token: c");
+                        return Err(StatusCode::UNAUTHORIZED)
+                    }
+                }
+            },
+            Err(_) => {
+                println!("from_token: d");
+                return Err( StatusCode::INTERNAL_SERVER_ERROR )
+            }
+        };
+        Ok(user)
     }
 }
 

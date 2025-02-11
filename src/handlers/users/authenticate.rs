@@ -1,11 +1,12 @@
 use crate::models::appstate::AppstateWrapper;
-use crate::models::user::AuthUser;
+use crate::models::user::{AuthUser, User};
 use crate::util::jwt::claims::Claims;
 use axum::extract::Request;
-use axum::http::StatusCode;
+use axum::http::{HeaderName, HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::Response;
 use axum::Extension;
+use axum::http::header::AUTHORIZATION;
 use axum_extra::extract::PrivateCookieJar;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 
@@ -17,32 +18,38 @@ pub async fn auth(
     next: Next
 ) -> Result<Response, StatusCode> {
     let appstate = appstate.0;
-    // get private cookies
+    // get token
     let headers = req.headers();
+
+    // get auth header
+    let auth_header = headers.get(AUTHORIZATION);
+    println!("{:?}", auth_header);
+
+    // get cookie jar
     let jar = PrivateCookieJar::from_headers(headers, appstate.cookie_secret.clone());
+    let cookie = jar.get("token");
+    /*
+    // determine the token
+    let token = match (auth_header, cookie) {
+        (Some(x), _) => {
+            // remove the "Bearer: "
+            x.to_str().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+                .strip_prefix("Bearer ").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
+        }, // Bearer token takes priority over cookies
+        (None, Some(y)) => &y.to_string(),
+        _ => return Err(StatusCode::UNAUTHORIZED)
+    };*/
+
 
     let token = jar.get("token")
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
+    println!("a");
 
-    // decode token
-    let secret = &appstate.jwt_secret;
-    let token_data = decode::<Claims>(
-        token.value(),
-        &DecodingKey::from_secret(secret.as_ref()),
-        &Validation::default()
-    ).map_err(|_| StatusCode::UNAUTHORIZED)?;
-
-    // validate claims and get user model
-    let claims = token_data.claims;
-    let user = match claims.validate_claims(&appstate.db_pool).await {
-        Ok(o) => {
-            match o {
-                Some(u) => u,
-                None => return Err(StatusCode::UNAUTHORIZED)
-            }
-        },
-        Err(_) => return Err( StatusCode::INTERNAL_SERVER_ERROR )
+    // get user from token
+    let user = match User::from_token(token.to_string(), &appstate).await {
+        Ok(o) => o,
+        _ => return Err(StatusCode::UNAUTHORIZED)
     };
 
 
