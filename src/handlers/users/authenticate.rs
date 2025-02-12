@@ -16,23 +16,21 @@ pub async fn auth(
     next: Next
 ) -> Result<Response, StatusCode> {
     let appstate = appstate.0;
-
-    // EXTRACTING TOKEN
     let headers = req.headers();
 
+    // get token from both auth headers and cookies
     let auth_header = headers.get(AUTHORIZATION);
-     // get cookie jar as user could use both Bearer or cookie
     let jar = PrivateCookieJar::from_headers(headers, appstate.cookie_secret.clone());
     let cookie = jar.get("token");
 
-     // determine the token
+     // determine which token to use with Bearer taking priority
     let token = match (auth_header, cookie) {
-        (Some(x), _) => {
+        (Some(header_token), _) => {
             // remove the "Bearer: "
-            x.to_str().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            header_token.to_str().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                 .strip_prefix("Bearer ").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
         }, // Bearer token takes priority over cookies
-        (None, Some(y)) => &y.value().to_string(),
+        (None, Some(cookie_token)) => &cookie_token.value().to_string(),
         _ => return Err(StatusCode::UNAUTHORIZED)
     };
 
@@ -40,11 +38,12 @@ pub async fn auth(
     // get user from token
     let user = match User::from_token(token.to_string(), &appstate).await {
         Ok(o) => o,
+        // could technically be something like a db error so maybe INTERNAL_SERVER_ERROR not UNAUTHORIZED?
         _ => return Err(StatusCode::UNAUTHORIZED)
     };
 
 
-    // pass user to next handler
+    // pass wrapped user to next handler
     req.extensions_mut().insert(AuthUser(user));
     let response = next.run(req).await;
     Ok(response)

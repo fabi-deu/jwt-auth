@@ -26,14 +26,14 @@ pub async fn change_password(
     State(appstate): State<AppstateWrapper>,
     jar: PrivateCookieJar,
     Json(body): Json<Body>
-) -> Result<(StatusCode, PrivateCookieJar), (StatusCode, &'static str)> {
+) -> Result<(StatusCode, String, PrivateCookieJar), (StatusCode, &'static str)> {
     let mut user = auth_user.0.0;
     let appstate = appstate.0;
 
     // confirm old password
     match user.compare_passwords(body.old_password) {
-        Ok(o) => {
-            if !o {
+        Ok(is_correct) => {
+            if !is_correct {
                 return Err((StatusCode::UNAUTHORIZED, "Wrong Password"))
             }
         },
@@ -45,7 +45,7 @@ pub async fn change_password(
     let argon2 = Argon2::default();
 
     let new_hashed = match argon2.hash_password(body.new_password.as_ref(), &salt) {
-        Ok(o) => o.to_string(),
+        Ok(password) => password.to_string(),
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash new password"))
     };
 
@@ -68,17 +68,17 @@ pub async fn change_password(
     }
 
     // generate new token
-    let token = match Claims::generate_jwt(&appstate.jwt_secret, &user) {
+    let new_token = match Claims::generate_jwt(&appstate.jwt_secret, &user) {
         Ok(o) => o,
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate new token"))
     };
 
     // add new token to cookies
-    let mut cookie = Cookie::new("token", token);
+    let mut cookie = Cookie::new("token", &new_token);
     cookie.set_http_only(true);
     cookie.set_same_site(SameSite::Strict);
 
     let jar = jar.add(cookie);
 
-    Ok((StatusCode::OK, jar))
+    Ok((StatusCode::OK, new_token, jar))
 }
