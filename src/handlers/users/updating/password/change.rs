@@ -26,7 +26,7 @@ pub async fn change_password(
     State(appstate): State<AppstateWrapper>,
     jar: PrivateCookieJar,
     Json(body): Json<Body>
-) -> Result<(StatusCode, String, PrivateCookieJar), (StatusCode, &'static str)> {
+) -> Result<(StatusCode, PrivateCookieJar, String), (StatusCode, &'static str)> {
     let mut user = auth_user.0.0;
     let appstate = appstate.0;
 
@@ -74,11 +74,11 @@ pub async fn change_password(
     };
 
     // add new token to cookies
-    let mut cookie = Cookie::new("token", &new_token);
+    let mut cookie = Cookie::new("token", new_token.clone());
     cookie.set_http_only(true);
     cookie.set_same_site(SameSite::Strict);
 
     let jar = jar.add(cookie);
 
-    Ok((StatusCode::OK, new_token, jar))
+    Ok((StatusCode::OK, jar, new_token))
 }

@@ -18,26 +18,17 @@ pub async fn login(
     State(appstate): State<AppstateWrapper>,
     jar: PrivateCookieJar,
     Json(body): Json<Body>
-) -> Result<(StatusCode, PrivateCookieJar), (StatusCode, &'static str)> {
+) -> Result<(StatusCode, PrivateCookieJar, String), (StatusCode, &'static str)> {
     let appstate = appstate.0;
 
     // get user from db
-    let conn = &appstate.db_pool;
-    let query_result = sqlx::query("SELECT * FROM users WHERE username = $1")
-        .bind(body.username)
-        .fetch_optional(conn.as_ref())
-        .await;
-
-    let row = match query_result {
-        Ok(Some(row)) => row,
+    let user = match User::from_username(&body.username, &appstate).await {
+        Ok(Some(user)) => user,
         Ok(None) => return Err((StatusCode::BAD_REQUEST, "User does not exist")),
-        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch user from db"))
+        _ => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to get user from db"))
     };
 
     // compare passwords
-    let user= User::from_pg_row(row)
-        .ok().ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Failed to parse user"))?;
-
     match user.compare_passwords(body.password) {
         Ok(o) => {
             if !o {
@@ -54,11 +45,11 @@ pub async fn login(
     };
 
     // set cookies
-    let mut cookie = Cookie::new("token", token);
+    let mut cookie = Cookie::new("token", token.clone());
     cookie.set_http_only(true);
     cookie.set_same_site(SameSite::Strict);
 
     let jar = jar.add(cookie);
 
-    Ok((StatusCode::OK, jar))
+    Ok((StatusCode::OK, jar, token))
 }

@@ -95,6 +95,21 @@ impl User {
         };
         Ok(user)
     }
+
+    pub async fn from_username(username: &str, appstate: &Appstate) -> Result<Option<User>, Box<dyn Error>> {
+        // get user from db
+        let conn = &appstate.db_pool;
+        let query_result = sqlx::query("SELECT * FROM users WHERE username = $1")
+            .bind(username)
+            .fetch_optional(conn.as_ref())
+            .await?;
+
+
+        match query_result {
+            Some(row) => Ok(Some(User::from_pg_row(row)?)),
+            None => Ok(None),
+        }
+    }
 }
 
 #[async_trait]
