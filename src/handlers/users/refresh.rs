@@ -7,6 +7,7 @@ use axum::Extension;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::PrivateCookieJar;
 
+/// generates a new token
 #[axum_macros::debug_handler]
 pub async fn refresh_token(
     auth_user: Extension<AuthUser>,

@@ -21,7 +21,6 @@ impl Claims {
     pub async fn validate_claims(
         &self, conn: &Arc<Pool<Postgres>>
     ) -> Result<Option<User>, Box<dyn Error>> {
-
         // check for timestamps
         if self.exp < Utc::now().timestamp() as usize {
             return Ok(None)

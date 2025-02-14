@@ -19,7 +19,7 @@ pub struct Body {
     email: String,
     password: String,
 }
-
+/// public handler for creating new user
 #[axum_macros::debug_handler]
 pub async fn new(
     State(appstate): State<AppstateWrapper>,
@@ -69,19 +69,7 @@ pub async fn new(
     };
 
     // write user to db
-    let conn = &appstate.db_pool;
-    let query =
-        r"INSERT INTO users (uuid, username, email, password, permission, tokenid) VALUES ($1, $2, $3, $4, $5, $6)";
-
-    let query_result = sqlx::query(query)
-        .bind(&user.uuid.to_string())
-        .bind(&user.username)
-        .bind(&user.email)
-        .bind(&user.password)
-        .bind(&user.permission)
-        .bind(&user.tokenid.to_string())
-        .execute(conn.as_ref()).await;
-
+    let query_result = user.write_to_db(&appstate);
     if let Err(e) = query_result {
         return match e {
             Error::Database(db_err) => {

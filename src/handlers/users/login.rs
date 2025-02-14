@@ -13,7 +13,8 @@ pub struct Body {
     pub username: String,
     pub password: String,
 }
-
+/// Login handler for user by (unique) username and password
+#[axum_macros::debug_handler]
 pub async fn login(
     State(appstate): State<AppstateWrapper>,
     jar: PrivateCookieJar,
