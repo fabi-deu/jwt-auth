@@ -70,7 +70,7 @@ pub async fn new(
 
     // write user to db
     let query_result = user.write_to_db(&appstate);
-    if let Err(e) = query_result {
+    if let Err(e) = query_result.await {
         return match e {
             Error::Database(db_err) => {
                 if db_err.is_unique_violation() {

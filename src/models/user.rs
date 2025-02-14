@@ -111,12 +111,12 @@ impl User {
         }
     }
 
-    pub async fn write_to_db(&self, appstate: &Appstate) -> Result<(), Box<dyn Error>> {
+    pub async fn write_to_db(&self, appstate: &Appstate) -> Result<(), sqlx::Error> {
         let conn = &appstate.db_pool;
         let query =
             r"INSERT INTO users (uuid, username, email, password, permission, tokenid) VALUES ($1, $2, $3, $4, $5, $6)";
 
-        let query_result = sqlx::query(query)
+        let _ = sqlx::query(query)
             .bind(&self.uuid.to_string())
             .bind(&self.username)
             .bind(&self.email)

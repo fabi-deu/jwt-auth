@@ -4,6 +4,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
+use sqlx::Error;
 
 #[derive(Serialize, Deserialize)]
 pub struct Body {
@@ -29,8 +30,17 @@ pub async fn change_username(
         .execute(conn.as_ref())
         .await;
 
-    if !query_result.is_ok() {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to write change to db"))
+    if let Err(e) = query_result {
+        return match e {
+            Error::Database(db_err) => {
+                if db_err.is_unique_violation() {
+                    Err((StatusCode::BAD_REQUEST, "Username is already taken"))
+                } else {
+                    Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to update in db"))
+                }
+            }
+            _ => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to update in db"))
+        }
     }
 
     Ok(StatusCode::OK)
