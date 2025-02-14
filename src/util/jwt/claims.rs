@@ -27,7 +27,6 @@ impl Claims {
         }
 
         // get user from db
-        // use query_as macro instead (can't figure it out)
         let query = r"SELECT * FROM users WHERE uuid = $1";
         let row = sqlx::query(query)
             .bind(&self.sub.to_string())
