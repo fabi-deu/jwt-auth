@@ -95,6 +95,37 @@ impl User {
         };
         Ok(user)
     }
+
+    pub async fn from_username(username: &str, appstate: &Appstate) -> Result<Option<User>, Box<dyn Error>> {
+        // get user from db
+        let conn = &appstate.db_pool;
+        let query_result = sqlx::query("SELECT * FROM users WHERE username = $1")
+            .bind(username)
+            .fetch_optional(conn.as_ref())
+            .await?;
+
+
+        match query_result {
+            Some(row) => Ok(Some(User::from_pg_row(row)?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn write_to_db(&self, appstate: &Appstate) -> Result<(), sqlx::Error> {
+        let conn = &appstate.db_pool;
+        let query =
+            r"INSERT INTO users (uuid, username, email, password, permission, tokenid) VALUES ($1, $2, $3, $4, $5, $6)";
+
+        let _ = sqlx::query(query)
+            .bind(&self.uuid.to_string())
+            .bind(&self.username)
+            .bind(&self.email)
+            .bind(&self.password)
+            .bind(&self.permission)
+            .bind(&self.tokenid.to_string())
+            .execute(conn.as_ref()).await?;
+        Ok(())
+    }
 }
 
 #[async_trait]

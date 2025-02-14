@@ -65,6 +65,5 @@ pub fn password(password: &String) -> (bool, String) {
         return (false, "Does not include special char".to_string())
     }
 
-
     (true, "".to_string())
 }

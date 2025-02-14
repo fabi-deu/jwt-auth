@@ -8,7 +8,7 @@ use axum::response::Response;
 use axum::Extension;
 use axum_extra::extract::PrivateCookieJar;
 
-
+/// Authentication middleware
 #[axum_macros::debug_middleware]
 pub async fn auth(
     Extension(appstate): Extension<AppstateWrapper>,

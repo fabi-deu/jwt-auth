@@ -21,14 +21,12 @@ impl Claims {
     pub async fn validate_claims(
         &self, conn: &Arc<Pool<Postgres>>
     ) -> Result<Option<User>, Box<dyn Error>> {
-
         // check for timestamps
         if self.exp < Utc::now().timestamp() as usize {
             return Ok(None)
         }
 
         // get user from db
-        // use query_as macro instead (can't figure it out)
         let query = r"SELECT * FROM users WHERE uuid = $1";
         let row = sqlx::query(query)
             .bind(&self.sub.to_string())
