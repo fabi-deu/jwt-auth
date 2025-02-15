@@ -25,13 +25,14 @@ pub enum Permission{
 pub struct User {
     pub(crate) uuid: Uuid,
     pub(crate) username: String,
-    pub(crate) password: String,
+    password: String,
     pub(crate) email: String,
 
     pub(crate) permission: Permission,
     pub(crate) tokenid: Uuid,
     pub(crate) timestamp: usize,
 }
+
 // for passing user data to next handler with auth middleware
 #[derive(Clone)]
 pub struct AuthUser(pub User);
@@ -80,7 +81,7 @@ impl User {
 
         // validate claims and get user model
         let claims = token_data.claims;
-        let user = match claims.validate_claims(&appstate.db_pool).await {
+        let user = match claims.validate_claims(&appstate).await {
             Ok(o) => {
                 match o {
                     Some(u) => u,
@@ -144,7 +145,7 @@ where
             .get::<User>()
             .cloned()
             .map(AuthUser)
-            .ok_or(StatusCode::IM_A_TEAPOT);
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR);
 
         ready(user)
     }

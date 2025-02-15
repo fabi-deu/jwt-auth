@@ -21,6 +21,7 @@ pub mod models {
 }
 
 pub mod util{
+    pub mod hash;
     pub mod validation;
     pub mod jwt {
         pub mod claims;

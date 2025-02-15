@@ -75,6 +75,7 @@ async fn main() {
         .with_state(wrapped_appstate.clone())
     ;
 
+    println!("Listening & serving on 0.0.0.0:8000");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 

@@ -1,11 +1,10 @@
-use std::error::Error;
-use std::sync::Arc;
+use crate::models::appstate::Appstate;
+use crate::models::user::User;
 use chrono::Utc;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
+use std::error::Error;
 use uuid::Uuid;
-use crate::models::user::User;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Claims {
@@ -19,7 +18,7 @@ pub(crate) struct Claims {
 impl Claims {
     /// Validates Claims and returns User if valid
     pub async fn validate_claims(
-        &self, conn: &Arc<Pool<Postgres>>
+        &self, appstate: &Appstate
     ) -> Result<Option<User>, Box<dyn Error>> {
         // check for timestamps
         if self.exp < Utc::now().timestamp() as usize {
@@ -27,6 +26,7 @@ impl Claims {
         }
 
         // get user from db
+        let conn = &appstate.db_pool;
         let query = r"SELECT * FROM users WHERE uuid = $1";
         let row = sqlx::query(query)
             .bind(&self.sub.to_string())

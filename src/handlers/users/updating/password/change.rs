@@ -1,9 +1,7 @@
 use crate::models::appstate::AppstateWrapper;
 use crate::models::user::AuthUser;
+use crate::util::hash::hash_password;
 use crate::util::jwt::claims::Claims;
-use argon2::password_hash::rand_core::OsRng;
-use argon2::password_hash::SaltString;
-use argon2::{Argon2, PasswordHasher};
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Extension, Json};
@@ -41,12 +39,9 @@ pub async fn change_password(
     };
 
     // hash new password
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-
-    let new_hashed = match argon2.hash_password(body.new_password.as_ref(), &salt) {
-        Ok(password) => password.to_string(),
-        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash new password"))
+    let new_hashed = match hash_password(body.new_password).await {
+        Ok(hashed) => hashed,
+        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password"))
     };
 
     // generate new token-id
@@ -63,7 +58,7 @@ pub async fn change_password(
         .execute(conn.as_ref())
         .await;
 
-    if !query_result.is_ok() {
+    if let Err(_) = query_result {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to write change to db"))
     }
 
