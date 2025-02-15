@@ -1,12 +1,10 @@
 use crate::models::appstate::AppstateWrapper;
+use crate::util::hash::hash_password;
 use crate::util::jwt::claims::Claims;
 use crate::{
     models::user::*,
     util::validation,
 };
-use argon2::password_hash::rand_core::OsRng;
-use argon2::password_hash::SaltString;
-use argon2::{Argon2, PasswordHasher};
 use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::PrivateCookieJar;
@@ -45,10 +43,8 @@ pub async fn new(
 
     // hash password
     // hashing the password should be done after checking for unique username
-    let salt = SaltString::generate(&mut OsRng);
-    let argon = Argon2::default();
-    let hashed_password = match argon.hash_password(body.password.as_ref(), &salt) {
-        Ok(o) => o.to_string(),
+    let hashed_password = match hash_password(body.password).await {
+        Ok(hash) => hash,
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string()))
     };
 
